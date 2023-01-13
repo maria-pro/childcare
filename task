@@ -20,4 +20,66 @@ Sarah
 
 
 
+#-----------
+
+
+Info on research questions
+Overall research question: 
+
+
+!!!!!!!We want to use descriptive statistics to find out where there are inefficiencies in the early childhood education system.
+ 
+What does an inefficient system look like?
+
+Inefficiencies can look like:
+
+- Statistical areas with only for-profit (or a very high proportion of for-profit) service management types
+
+- Statistical areas with higher than average fees
+
+- Statistical areas with any number of services charging above the fee cap – the more services charging above the cap there are, the worse the inefficiency
+
+- Statistical areas with a high proportion of low quality services (overall quality rating of ‘significant improvement required’ or ‘working towards’)
+
+- Statistical areas where there are a low proportion of children scored as ‘on track’ in their AEDC results
+
+- For all of the above – if there are statistical areas where inefficiencies overlap e.g. areas with high fees AND poor quality
+
+- For all of the above – inefficiency is worse if these areas are also associated with other disadvantaged characteristics like low socioeconomic status, regional or remote areas, or higher than average indigenous population. However, we are interested in all inefficiencies whether they relate to disadvantage or not. One of the key messages we’re hoping to communicate with the research is that the system is inefficient for a lot of people, not just disadvantaged people.
+ 
+Analysis and results
+We are open to exploring several different ways of comparing variables – 
+
+- correlational relationships between 2 or more variables, 
+
+- clusters where are certain inefficiency might be particularly bad, 
+
+- data variance (e.g. perhaps average service quality in inner city and in regional areas is the same, but the variance of quality is higher in regional areas).
+ 
+Our priority is looking at results based on point-in-time data. 
+- Adding historical data and auto-update functions for deeper and ongoing analysis is a secondary priority – nice to have but only if you have time to include it. However if we don’t include an auto-update function, it should ideally be straightforward to be able to update data ourselves by manual import.
+ 
+Our target audience for this report are senior government workers, politicians, and community groups, so simple and clear is best when presenting results, with some further detail on technical information presented in an appendix. Map visualisations (static or interactive) are also great. Majority of the readers will view the publication online but we will also do a small print run.
+ 
+ 
+ECEC-specific context to note
+
+We are only looking at Long Day Care and Preschool/Kindergarten services as part of this research.
+
+Most recent data on population numbers for 4 and 5 year olds not yet in primary school is only from 2017. I will keep digging for any other sources but if I can’t find anything, we’ll need to make a decision on whether or not it’s okay to use this 2017 data.
+
+WA and TAS preschool/kindergartens are not yet included in the data. I’m following up with some different regulatory bodies to see if I can try and get a list rather than having to pull all of the information manually.
+
+I forgot to mention this in the meeting, but I’m also still exploring whether we can get enrolment numbers for each SA area. It’s a bit tricky because we only want enrolment numbers for Long Day Care and Preschool/Kindergarten. I still need to do some digging into ABS Tablebuilder. I’ll update you next week.
+ 
+For reference, the data that needs the latitude and longitude is in the ‘QGIS Output’ sheet, from row 11565 onwards.
+ 
+ 
+I’ll set up the recurring meeting now and send through a calendar invite. It’ll just be the two of us most of the time, I might invite Jacki to come along once or twice if needed.
+ 
+Thanks again and please reach out if you need anything.
+ 
+Sarah
+
+
 CBDC fees’ sheet: Department of Education Child Care Quarterly Report – Sept 2021, however it’s only presented by SA3 area
