@@ -111,8 +111,6 @@ group_by(sa4_code)%>%
   
 
 
-%>%write_csv("data/full_data.csv")
-
 #---------
 # get addresses 
 
@@ -155,7 +153,7 @@ address_missing <- data_address %>%filter(Lat==0)
 #google maps
 library(googleway)
 
-key <- "AIzaSyBUvQmqxo0FlDZPZv7YFgiSE9KVMbotMBo"
+key <- ""
 set_key(key = key)
 google_keys()
 
