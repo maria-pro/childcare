@@ -16,8 +16,8 @@ library(absmapsdata)
 
 
 #import 
-data_location<-"/Users/e5028514/Desktop/childcare/data/SA2_ECEC_Linked_Dataset.xlsx"
-tab_names<-excel_sheets(path = data_location)
+data_location<-"/Users/e5028514/Desktop/childcare/data/SA2_ECEC_Linked_Dataset_mp.xlsx"
+#tab_names<-excel_sheets(path = data_location)
 
 #sarah's data
 #need to install cellranger package to use large cell block
@@ -25,7 +25,7 @@ tab_names<-excel_sheets(path = data_location)
 
 linked_data<-read_excel(data_location, sheet=1, range="A5:AM2478")
 
-data_var<-read_excel(data_location, sheet=1, range="A4:AM4", col_names=FALSE)                        
+#data_var<-read_excel(data_location, sheet=1, range="A4:AM4", col_names=FALSE)                        
 
 linked_data<-linked_data%>%clean_names()
 
@@ -35,7 +35,7 @@ linked_data<-linked_data%>%
   )
 
 #fee's data
-fee_data<-read_excel("/Users/e5028514/Desktop/childcare/data/CBDC_fees.xlsx", sheet="CBDC Fees", range="A3:J336", na=c("", "."))
+fee_data<-read_excel("/Users/e5028514/Desktop/childcare/data/CBDC_fees-mp.xlsx", sheet="CBDC Fees", range="A3:J336", na=c("", "."))
 
 fee_data<-fee_data%>%clean_names()
 
