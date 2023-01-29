@@ -4,6 +4,7 @@ Great to chat with you this morning.
  
 As discussed, I’ve attached the Excel document that I’ve been working in so far. 
 
+## Initial setup
 
 The first sheet in the document called ‘LINKED DATASET’ is the main sheet that consolidates all the data I’ve pulled and displays it by SA2 area i.e. the anchor that links all of the data sets. 
 
@@ -23,17 +24,23 @@ Sarah
 #-----------
 
 
-Info on research questions
-Overall research question: 
+## Info on research questions
+
+*Overall research question: *
 
 
 !!!!!!!We want to use descriptive statistics to find out where there are inefficiencies in the early childhood education system.
  
 What does an inefficient system look like?
 
-Inefficiencies can look like:
+*MERGE FULL DATA WITH SEPARATE GEOMETRIES FOR SA2-SA4*
 
-- Statistical areas with only for-profit (or a very high proportion of for-profit) service management types
+for profit - low quality, higher fees (above cap), remoteness 
+
+Inefficiencies can look like:
+**correlation for all but regression for selected ones, mixed models/lm (predicted vs actual)
+
+- Statistical areas with only for-profit (or a very high proportion of for-profit) service management types SA2-4
 
 - Statistical areas with higher than average fees
 
@@ -52,7 +59,7 @@ We are open to exploring several different ways of comparing variables –
 
 - correlational relationships between 2 or more variables, 
 
-- clusters where are certain inefficiency might be particularly bad, 
+- clusters where are certain inefficiency might be particularly bad, #geographical clusters - vs clusters with characteristics
 
 - data variance (e.g. perhaps average service quality in inner city and in regional areas is the same, but the variance of quality is higher in regional areas).
  
@@ -62,11 +69,15 @@ Our priority is looking at results based on point-in-time data.
 Our target audience for this report are senior government workers, politicians, and community groups, so simple and clear is best when presenting results, with some further detail on technical information presented in an appendix. Map visualisations (static or interactive) are also great. Majority of the readers will view the publication online but we will also do a small print run.
  
  
+### Data sample focus
+
 ECEC-specific context to note
 
-We are only looking at Long Day Care and Preschool/Kindergarten services as part of this research.
+We are only looking at *Long Day Care* and *Preschool/Kindergarten* services as part of this research.
 
-Most recent data on population numbers for 4 and 5 year olds not yet in primary school is only from 2017. I will keep digging for any other sources but if I can’t find anything, we’ll need to make a decision on whether or not it’s okay to use this 2017 data.
+**Most recent data on population numbers for 4 and 5 year olds not yet in primary school is only from 2017**. 
+
+I will keep digging for any other sources but if I can’t find anything, we’ll need to make a decision on whether or not it’s okay to use this 2017 data.
 
 WA and TAS preschool/kindergartens are not yet included in the data. I’m following up with some different regulatory bodies to see if I can try and get a list rather than having to pull all of the information manually.
 
@@ -83,3 +94,36 @@ Sarah
 
 
 CBDC fees’ sheet: Department of Education Child Care Quarterly Report – Sept 2021, however it’s only presented by SA3 area
+
+----------
+
+
+Data suppression legislation
+I had a good dig into various legislation and concluded that I don’t think our research is at much of a risk of breaching any privacy laws or protocols. The legislation is mainly about being able to identify individuals, but most of our data is related to early childhood services so isn’t applicable. The only variables we might have to be careful with are Indigenous population and AEDC children ‘on track’, because they reflect individuals. In these cases we can use the percentage figure rather than the number of individuals itself, so as not to risk privacy when numbers of children in a given SA are low.
+ 
+There are also some rules around not being able to identify individual organisations, but it seems to be more in the context of not revealing sensitive or potentially damaging business information. The ‘NQS July 2022’ sheet links individual businesses with their SEIFA, ARIA remoteness classification and quality rating already, and is all publicly available. We may just have to be careful in the way we present data for other variables that the NQS July 2022 dataset doesn’t contain, e.g. services charging above the fee cap. This might be something like using a graph rather than a table, or just making a generalised statement that doesn’t identify specific SAs by name. We can think about these on a case by case basis as we go through them.
+ 
+Calculating remoteness
+Just a recap on how I calculated remoteness in the dataset. The ‘NQS July 2022 data’ sheet is a list of every early childhood service that falls under the national regulations. Column M in this sheet has the ARIA+ Remoteness Classification for each service, and columns Z and AA have the SA2 that service is located within.
+ 
+In the LINKED DATASET sheet, columns F-J uses the NQS July 2022 data to count the number of services within each ARIA classification for that SA2 and presents the total n of services. Column K presents the modal classification for each SA2.
+ 
+Issues with this approach:
+WA and TAS preschools/kindergartens are not included as part of the national regulation database (and aren’t included in the linked data). This means that the number of services calculated within each SA2 area for WA and TAS is incomplete – it only counts long day care services for younger children. This means the modal remoteness classification is likely to be incorrect for many WA and TAS SA2s.
+Some SA2s have services across multiple remoteness classifications. Given that SA2s are quite small, classifying an area e.g. as Remote because it has 2 ‘Outer Regional’ services and 3 ‘Remote’ services doesn’t feel like a meaningful representation of the full spread of services within that SA2.  
+There are remoteness classifications for ASGS boundaries, but these are only for 2016 boundaries, so would need to be converted to 2021 boundaries to align with the rest of the linked data.
+ 
+We spoke about you looking into polygon map boundaries to pinpoint each service and get its remoteness, which we can chat more about when we meet later this week.
+ 
+SA2s for services without latitude and longitude data
+We ran out of time to speak about this last week, but the week before we had spoken about the work you were doing to fill in the SA2 location (columns I and J in the QGIS Output sheet) for the services that didn’t have latitude and longitude data (in the QGIS Output sheet, row 11565 to 11644). The final step for this was to check that the SA2 columns in the ‘NQS July 2022’ sheet had updated based on this new data. There’s a formula in the Excel doc that should pull the info in QGIS Output columns I and J, match it to the relevant service in the NQS July 2022 sheet, and then populate columns Z and AA for that service’s row in the NQS July 2022 sheet.
+ 
+Let me know if there are any issues with that or if you’d like to chat further about it.
+
+
+#----------
+
+Perinatal Health Data
+I have attached the health-related data set that we’d like to incorporate into the linked data. It contains six fairly straightforward variables that measure either things going well maternal and child health (attending 5 or more antenatal visits, attending an antenatal visit in the first trimester), or measure disadvantage/systems not working well (smoking during pregnancy, teenage mothers, low birth weight, small for gestational age).
+ 
+These variables are only available in SA3s, they don’t go down to SA2 so I wasn’t able to incorporate it into my main Linked Data excel document. Could you please add in this health data into your linked set (same as you did for the fees and costs data)? Thank you!
