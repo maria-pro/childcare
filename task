@@ -127,3 +127,42 @@ Perinatal Health Data
 I have attached the health-related data set that we’d like to incorporate into the linked data. It contains six fairly straightforward variables that measure either things going well maternal and child health (attending 5 or more antenatal visits, attending an antenatal visit in the first trimester), or measure disadvantage/systems not working well (smoking during pregnancy, teenage mothers, low birth weight, small for gestational age).
  
 These variables are only available in SA3s, they don’t go down to SA2 so I wasn’t able to incorporate it into my main Linked Data excel document. Could you please add in this health data into your linked set (same as you did for the fees and costs data)? Thank you!
+
+#--------
+
+
+Hi Maria,
+ 
+An update on the data source that has the list of WA and TAS schools – turns out it will only be partially helpful.
+ 
+The data source only collects information on whether government schools have a preschool on their school grounds or not. It doesn’t collect this information for non-government schools, which is where my earlier definitional problems were coming from.
+ 
+What this means is that we can still use this source to integrate information on WA and TAS government schools into our linked data set. I have set out steps on how to do this below:
+ 
+Steps for adding data on WA and TAS government schools
+I have attached an excel document that lists all the WA and TAS government schools that need to be integrated into our linked dataset. These are in the first sheet of the Excel doc.  I’ve already removed any irrelevant rows so no need to do any further filtering. 
+
+There are lots of variables in the data and we only need some of the columns. The idea is that these variables are all analogous to variables that already exist within our linked data set, rather than creating a set of additional columns when you incorporate these schools into the linked data. Most are self explanatory, for example ‘Postcode’ in this data would simply go in the ‘Postcode’ column in the linked set. Where something might be less straightforward I’ve added further information to clarify. Here are the columns to extract from the excel document:
+ACARA SML ID (this is a unique ID code assigned to each school, so can go into the same column as ‘Service Approval Number’)
+School Name (same column as ‘Service Name’)
+Suburb
+State
+Postcode
+School Sector (they are all government schools, so would need to be included in the ‘Mgmt type - S/T govt school’ variable count)
+Latitude
+Longitude
+SA2 number and name
+SA3 number and name
+SA4 number and name
+ 
+If you have any questions about this feel free to give me a call or I can set up a quick zoom call.
+ 
+WA and TAS non-government schools
+This means that non-government schools in WA and TAS that have preschools are the final missing piece. However, it looks like using the My School website  isn’t useful here either – turns out they have the same data issue in that they also don’t collect data on non-government schools that have preschools (seems to be some kind of national government reporting decision).
+ 
+Because of this, we might have to go back to the original proposed method of using the websites of the Catholic and Independent school sectors themselves to scrape the information we need, rather than using this government reported data. Before we go ahead with this though I am going to triple check on each of these websites that they do actually have the data we need!
+ 
+Once I have confirmed that these websites are a reliable data source I will send you the links with more detailed instructions. But for now you can go ahead with integrated the data on government schools as outlined above.
+ 
+Thanks
+Sarah  

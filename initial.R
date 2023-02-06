@@ -4,8 +4,7 @@
 #options(timeout = 1000)
 #remotes::install_github("wfmackey/absmapsdata")
 
-theme_set(theme_minimal())
-options("scipen"=100, "digits"=2)
+
 
 library(tidyverse)
 library(readxl)
@@ -14,6 +13,9 @@ library(reactable)
 
 library(sf)
 library(absmapsdata)
+
+theme_set(theme_minimal())
+options("scipen"=100, "digits"=2)
 
 #----------
 
@@ -68,10 +70,11 @@ center_data<-center_data%>%select(-c(
   sa2_name,
   post_code,
   state,
-  full_name,
-  latitude,
-  longitude)
+  full_name)
 )
+
+
+
 
 #center_data%>%write_csv("data/center_data.csv")
 
@@ -202,7 +205,7 @@ center_data_map_2021<-left_join(center_data_map_2021, seifa_data)
 #It contains six fairly straightforward variables that measure either things going well maternal and child health (attending 5 or more antenatal visits, attending an antenatal visit in the first trimester), or measure disadvantage/systems not working well (smoking during pregnancy, teenage mothers, low birth weight, small for gestational age).
 #These variables are only available in SA3s
 
-
+#  https://www.aihw.gov.au/reports/mothers-babies/australias-mothers-babies/data
 
 prenatal_data<-read_excel("/Users/e5028514/Desktop/childcare/data/SA3 Perinatal Health Data.xlsx", sheet=1, range="A8:R321", col_names=FALSE)
 
@@ -236,19 +239,46 @@ center_data_map_2021<-left_join(center_data_map_2021, prenatal_data)
 # no change since updated file is used
 #Enrolment Data
 #I’ve attached an updated version of the main Linked Dataset document that contains two new columns on the main LINKED DATA sheet (columns X and Y) that capture 4 and 5 year olds who are not enrolled in primary school or preschool. The % rate in Column Y is a measure of the rate of 4 and 5 year olds who are aren’t old enough for primary school, but also aren’t attending preschool. It’s a proxy measure rather than a direct measure – additional info on this including source info is in the ‘Enrolment’ sheet within the document.
+#--------
+#connect linked data
+
+linked_data<-linked_data%>%
+  select(-sa2_name)%>%
+  mutate(sa2_code=as.character(sa2_code))
+
+center_data_map_2021<- left_join(center_data_map_2021, linked_data, by=c("sa2_code_2021"="sa2_code"))
+
 
 
 #-------FINAL SET
 
 center_data_map_2021%>%st_write("data/center_data_map_2021.geojson", append=TRUE)
 
-#center_data_map_2021<-st_read("data/center_data_map_2021.geojson", quiet=TRUE)
+#center_data_map_2021_test<-st_read("data/center_data_map_2021.geojson", quiet=TRUE)
 
 center_data_map_2021_flat<-st_drop_geometry(center_data_map_2021)
 
 center_data_map_2021_flat%>%write_csv("data/center_data_map_2021_flat.csv")
 
+#------------
+#WA and TAS 
+wa_tas_gov<-read_excel("/Users/e5028514/Desktop/childcare/data/WA_TAS_Govt.xlsx", sheet=1, range="A1:AE822")
 
+wa_tas_gov<-wa_tas_gov%>%clean_names()
+
+ACARA SML ID (this is a unique ID code assigned to each school, so can go into the same column as ‘Service Approval Number’)
+School Name (same column as ‘Service Name’)
+Suburb
+State s_t
+Postcode
+School Sector (they are all government schools, so would need to be included in the ‘Mgmt type - S/T govt school’ variable count)
+Latitude
+Longitude
+SA2 number and name sa2_code
+SA3 number and name
+SA4 number and name
+
+center_data_map_2021$lat
 #--------------------
 #STOPPED HERE
 #EXPLORATION
@@ -274,66 +304,3 @@ group_by(sa4_code)%>%
 
 
 
-#---------
-# get addresses 
-
-library(OpenStreetMap)
-library(osmdata)
-aus_bb <- getbb("Melbourne")
-public_trasport<-aus_bb%>%opq()%>%
-  add_osm_feature(key="public_transport", value="station")%>%
-  osmdata_sf()
-
-
-public_trasport$osm_points
-#available features
-
-library(ggmap)
-aus_map <- get_map(aus_bb, maptype = "roadmap")
-
-available_features()
-#note: wholesale, cuisine, wholesale
-
-available_tags("public_transport")
-#note: childcare, kindergarten
-#food_court, fast_food, biergarten, drinking_water, kitchen(?), marketplace (?), pub, water_point
-
-####### user openstreetmap via tidygeocoder
-
-library(tidygeocoder)
-
-#read addresses
-
-
-
-data_address<-read_excel(data_location, sheet="QGIS Output", range="C15:H11644", col_names=FALSE) 
-colnames(data_address)<-c("name", "post_code", "state", "full_name", "Lat", "Long")
-
-address_missing <- data_address %>%filter(Lat==0)
-  geocode(address = full_name, method = "osm", verbose = TRUE)
-
-
-#google maps
-library(googleway)
-
-key <- ""
-set_key(key = key)
-google_keys()
-
-test<-address%>%head(5)
-
-
-for (i in test$full_name){
-
-df <- google_geocode(address =i,
-                     key = key,
-                     simplify = TRUE)
-i
-geocode_coordinates(df)
-}
-
-ggmap::register_google(key = "AIzaSyBUvQmqxo0FlDZPZv7YFgiSE9KVMbotMBo")
-
-GeoCoded <- purrr::map_df(.x = address$full_name, .f = ggmap::geocode)
-
-GeoCoded%>%write_csv("GeoCoded.csv")
