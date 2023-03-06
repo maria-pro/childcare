@@ -1,0 +1,530 @@
+---
+title: "analysis tasks"
+format: html
+editor: visual
+---
+
+
+## General exploration
+
+# list and map with sa2 with no centres
+
+
+```{r}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(mapview)
+library(simplevis)
+library(reactable)
+library(reactablefmtr)
+library(plotly)
+library(absmapsdata)
+library(corrplot)
+
+
+theme_set(theme_minimal())
+options("scipen"=100, "digits"=2)
+
+
+#---maps
+
+map_sa2 <- sa22021
+map_sa1 <- sa12021
+
+map_sa2_2016<-sa22016
+
+map_sa3 <- sa32021
+
+map_sa4 <- sa42021
+
+#-------
+
+total_data_center<-read_csv("/Users/e5028514/Desktop/childcare/data/analysis_data/center_data_geo.csv", 
+                            col_types=cols(
+                              sa2_code_2021 = col_character(),
+                              sa3_code_2021 = col_character()
+                            ))
+
+sa2<-read_csv("/Users/e5028514/Desktop/childcare/data/analysis_data/sa2_final.csv", 
+              col_types=cols(
+                sa2_code_2021 = col_character(),
+                sa3_code_2021 = col_character()
+              ))
+  
+
+map_sa2<-map_sa2%>%select(sa2_code_2021, gcc_code_2021,geometry)
+
+map_sa3<-map_sa3%>%select(sa3_code_2021, gcc_code_2021,geometry)
+
+sa2_geo<-left_join(sa2, map_sa2)
+
+sa3_geo<-left_join(sa2, map_sa3)
+
+total_data_center_sa2<-left_join(total_data_center, map_sa2)
+
+#set geometry
+
+st_geometry(sa2_geo)<-sa2_geo$geometry
+
+st_geometry(sa3_geo)<-sa2_geo$geometry
+
+st_geometry(total_data_center_sa2)<-total_data_center_sa2$geometry
+```
+
+
+```{r}
+
+#--------- test map
+
+#sa2_geo%>%plot_mapbox(split=~sa2_code_2021)
+
+```
+
+
+
+
+```{r eval=FALSE}
+
+
+sa3_geo%>%plot_mapbox(split=~sa3_code_2021)
+
+total_data_center_sa2%>%plot_mapbox()%>%
+  add_sf(
+    data = total_data_center_sa2,
+    split=~sa3_code_2021)%>%
+  add_markers(
+    x = ~longitude, 
+    y = ~latitude, 
+    size = ~nqs_max_total_places, 
+    color = ~mgmt_type_adj,
+    colors = "Accent",
+    text = ~paste(service_approval_number, "\n type = ", mgmt_type_adj, "\n max total places = ",  nqs_max_total_places),
+    hoverinfo = "text"
+  )%>%
+  layout(
+    mapbox = list(
+      zoom = 4.8,
+      center = list(lat = -33, lon = 151)
+    )
+  )%>%
+    hide_legend()
+
+```
+
+
+### Missing centres altogether
+```{r}
+
+res<-sa22021%>%st_drop_geometry()%>%filter(!sa2_code_2021 %in% sa2$sa2_code_2021)
+
+#res<-map_sa2%>%filter(!sa2_code_2021 %in% sa2_geo$sa2_code_2021)
+
+#res<-st_drop_geometry(res)
+
+#missing sa2
+res%>%
+  select(sa2_code_2021, sa2_name_2021)%>%
+  reactable()
+
+#missing sa2 per gcc
+table<-res%>%
+  group_by(gcc_code_2021, gcc_name_2021)%>%
+  count(sort=TRUE)
+
+table%>%reactable()
+
+#states missing centres at the sa2 level
+res%>%group_by(state_name_2021)%>%
+  count(sort=TRUE)%>%reactable()
+
+
+res%>%group_by(state_name_2021)%>%
+  count(sort=TRUE)%>%
+  ggplot(aes(
+    x=fct_reorder(state_name_2021, n),
+    y=n,
+    fill=state_name_2021))+
+  geom_col()+ 
+  labs(title="",
+       x ="", y="Number of SA2 with missing centres")+
+  theme(
+    legend.position="none",
+    
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks.y=element_line(colour = "black"),
+    axis.ticks.x=element_blank(),
+    axis.line.x = element_line(colour = "black"),
+    axis.line.y = element_line(colour = "black"),
+    
+    #text = element_text(size = 14),
+    axis.text.x=element_text(angle=90,hjust=1)
+    
+    #,
+    #axis.text.y=element_text(size=14)
+  )
+  
+  
+res1<-table%>%filter(gcc_code_2021 %in% c("8ACTE", "5GPER", "1GSYD", "3GBRI", "7GDAR", "4GADE", "6GHOB"))
+res2<-table%>%filter(gcc_code_2021 %in% c("3RQLD", "1RNSW", "2RVIC", "5RWAU", "6RTAS", "4RSAU"))
+
+res1%>%ggplot(aes(
+  x=fct_reorder(gcc_name_2021, n),
+  y=n,
+  fill=gcc_name_2021))+
+  geom_col()+ 
+  labs(title="",
+       x ="", y="Number of SA2 with missing centres")+
+  theme(
+    legend.position="none",
+    
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks.y=element_line(colour = "black"),
+    axis.ticks.x=element_blank(),
+    axis.line.x = element_line(colour = "black"),
+    axis.line.y = element_line(colour = "black"),
+    
+    #text = element_text(size = 14),
+    axis.text.x=element_text(angle=90,hjust=1)
+    
+    #,
+    #axis.text.y=element_text(size=14)
+  )
+  
+
+#Regional
+res2%>%ggplot(aes(
+  x=fct_reorder(gcc_name_2021, n),
+  y=n,
+  fill=gcc_name_2021))+
+  geom_col()+ 
+  labs(title="",
+       x ="", y="Number of SA2 with missing centres")+
+  theme(
+    legend.position="none",
+    
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),
+    panel.background = element_blank(),
+    axis.ticks.y=element_line(colour = "black"),
+    axis.ticks.x=element_blank(),
+    axis.line.x = element_line(colour = "black"),
+    axis.line.y = element_line(colour = "black"),
+    
+    #text = element_text(size = 14),
+    axis.text.x=element_text(angle=90,hjust=1)
+    
+    #,
+    #axis.text.y=element_text(size=14)
+  )
+
+#res
+
+```
+
+## Management type (mngm_type_adj)
+
+Total sample = all areas, percentage of private for profit centres based on total number of centres per sa2 area
+
+```{r}
+#mngm_type_adj
+
+sa2%>%
+ # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+ #        "s_t_govt_school", "other")%>%
+  mutate(total_number=private_for_profit+ private_not_for_profit_community_managed +
+           private_not_for_profit_other_organisations+
+           s_t_govt_school+
+           state_territory_and_local_government_managed+
+           non_govt_school+
+           other,
+         private_for_profit_perc=private_for_profit/total_number*100)%>%
+  select(sa2_code_2021, sa2_name_2021,private_for_profit, total_number, private_for_profit_perc)%>%
+  arrange(desc(private_for_profit_perc))
+```
+
+Excluding sa2 areas with only 1 centre. 
+
+```{r}
+
+#removing sa2 where total_number=1
+sa2%>%
+  # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+  #        "s_t_govt_school", "other")%>%
+  mutate(total_number=private_for_profit+ private_not_for_profit_community_managed +
+           private_not_for_profit_other_organisations+
+           s_t_govt_school+
+           state_territory_and_local_government_managed+
+           non_govt_school+
+           other,
+         private_for_profit_perc=private_for_profit/total_number*100)%>%
+  filter(total_number>1)%>%
+  select(sa2_code_2021, sa2_name_2021,private_for_profit, total_number, private_for_profit_perc)%>%
+  arrange(desc(private_for_profit_perc))
+
+
+```
+
+### SA2 areas with Private_for_profit >75% (total sample)
+
+```{r}
+sa2_geo%>%
+  # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+  #        "s_t_govt_school", "other")%>%
+  mutate(total_number=private_for_profit+ private_not_for_profit_community_managed +
+           private_not_for_profit_other_organisations+
+           s_t_govt_school+
+           state_territory_and_local_government_managed+
+           non_govt_school+
+           other,
+         private_for_profit_perc=private_for_profit/total_number*100)%>%
+  filter(private_for_profit_perc>75)%>%
+  plot_mapbox(
+    #split=~sa2_code_2021
+    size = ~private_for_profit,
+    text = ~paste(private_for_profit, "\n", round(private_for_profit_perc, 2), "%"),
+    hoverinfo = "text",
+    color=~private_for_profit_perc)%>%
+  hide_legend()
+
+```
+
+
+### Close up of NSW, different options. To be done for every state/ gcc_code_2021
+
+HoverText is kept for now /testing - will be removed later (?)
+
+```{r}
+#with NSW
+sa2_geo%>%
+  # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+  #        "s_t_govt_school", "other")%>%
+  mutate(total_number=private_for_profit+ private_not_for_profit_community_managed +
+           private_not_for_profit_other_organisations+
+           s_t_govt_school+
+           state_territory_and_local_government_managed+
+           non_govt_school+
+           other,
+         private_for_profit_perc=private_for_profit/total_number*100)%>%
+  filter(#private_for_profit_perc>75 & 
+           state_code_2021==1)%>%
+  plot_mapbox(
+    #split=~sa2_code_2021
+  #  size = ~private_for_profit,
+   text = ~paste("Private for profit: ", private_for_profit, "\n", round(private_for_profit_perc, 2), "%"),
+ #   hoverinfo = "text",
+ #   zoom=5,
+ fillcolor =~round(private_for_profit_perc, 2)
+    )
+
+```
+
+
+### Introduced ranges/intervals for percentage of private for profit per sa2 area
+
+```{r}
+#ranges
+
+  sa2_geo%>%
+    # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+    #        "s_t_govt_school", "other")%>%
+    mutate(total_number=private_for_profit+ private_not_for_profit_community_managed +
+             private_not_for_profit_other_organisations+
+             s_t_govt_school+
+             state_territory_and_local_government_managed+
+             non_govt_school+
+             other,
+           private_for_profit_perc=private_for_profit/total_number*100)%>%
+    filter(#private_for_profit_perc>75 & 
+      state_code_2021==1)%>%
+    mutate(
+      ranges=case_when(
+        private_for_profit_perc>75 ~"75-100%",
+        (private_for_profit_perc<75 & private_for_profit_perc>50) ~"50-75%",
+        (private_for_profit_perc<50 & private_for_profit_perc>25) ~"25-50%",
+        TRUE~"0-25%"
+      ))%>%
+    plot_mapbox(
+      #split=~sa2_code_2021
+      #  size = ~private_for_profit,
+      text = ~paste("Private for profit: ", private_for_profit, "\n", round(private_for_profit_perc, 2), "%"),
+         hoverinfo = "text",
+      #   zoom=5,
+      color =~ranges
+    )
+```
+
+### 1GSYD NSW close up
+to be done for all gcc_code_2021
+
+```{r}
+
+  #with Private_for_profit >75% = NSW
+  sa2_geo%>%
+    # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+    #        "s_t_govt_school", "other")%>%
+    mutate(total_number=private_for_profit+ private_not_for_profit_community_managed +
+             private_not_for_profit_other_organisations+
+             s_t_govt_school+
+             state_territory_and_local_government_managed+
+             non_govt_school+
+             other,
+           private_for_profit_perc=private_for_profit/total_number*100)%>%
+    filter(#private_for_profit_perc>75 & 
+      gcc_code_2021=="1GSYD")%>%
+    plot_mapbox(
+      #split=~sa2_code_2021
+      #  size = ~private_for_profit,
+      text = ~paste("Private for profit: ", private_for_profit, "\n", round(private_for_profit_perc, 2), "%"),
+      #   hoverinfo = "text",
+         zoom=5,
+      fillcolor =~round(private_for_profit_perc, 2)
+    )
+```
+
+### Ranges - 1GSYD NSW close up
+
+```{r}
+
+  #ranges
+  
+  sa2_geo%>%
+    # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+    #        "s_t_govt_school", "other")%>%
+    mutate(total_number=private_for_profit+ private_not_for_profit_community_managed +
+             private_not_for_profit_other_organisations+
+             s_t_govt_school+
+             state_territory_and_local_government_managed+
+             non_govt_school+
+             other,
+           private_for_profit_perc=private_for_profit/total_number*100)%>%
+    filter(#private_for_profit_perc>75 & 
+      gcc_code_2021=="1GSYD")%>%
+    mutate(
+      ranges=case_when(
+        private_for_profit_perc>75 ~"75-100%",
+        (private_for_profit_perc<75 & private_for_profit_perc>50) ~"50-75%",
+        (private_for_profit_perc<50 & private_for_profit_perc>25) ~"25-50%",
+        TRUE~"0-25%"
+      ))%>%
+    plot_mapbox(
+      #split=~sa2_code_2021
+      #  size = ~private_for_profit,
+      text = ~paste("Private for profit: ", private_for_profit, "\n", round(private_for_profit_perc, 2), "%"),
+      hoverinfo = "text",
+      #   zoom=5,
+      color =~ranges
+    )  
+```
+
+### Average numbers and percentages per aria 
+
+```{r}
+#average numbers and percentages per aria 
+  
+total_data_center%>% group_by(state, aria)%>%
+    count(mgmt_type_adj, sort=TRUE)%>%
+    pivot_wider(
+      names_from=mgmt_type_adj, values_from=n
+    )%>% 
+    arrange(state)
+  
+res<-total_data_center%>% group_by(state, aria)%>%
+    count(mgmt_type_adj, sort=TRUE)%>%
+  mutate(total_number=sum(n, na.rm=TRUE),
+         mgmt_type_perc=n/total_number*100)
+
+
+  res%>% ggplot(aes(mgmt_type_adj, mgmt_type_perc, fill=aria))+
+  geom_col(position = "dodge")+
+  facet_wrap(~state)+
+  labs(title="",
+         x ="", y="Percent")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+      axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+  
+  #NSW
+  
+    res%>%filter(state=="NSW")%>% 
+      ggplot(aes(mgmt_type_adj, mgmt_type_perc, fill=aria))+
+  geom_col(position = "dodge")+
+#  facet_wrap(~state)+
+  labs(title="",
+         x ="", y="Percent")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+      axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+  
+```  
+  
+
+### Correlation between management type and available places
+
+
+```{r eval=FALSE}
+res<-total_data_center%>%filter(
+  dataset=='nqs'
+)%>%select(
+  mgmt_type_adj, nqs_max_total_places, nqs_overall_rating,
+  seifa_decile, fee_per_hr)
+
+polycor::hetcor(res)
+corrplot
+```
+
+
+
+```{r eval=FALSE}
+mutate(total_number=private_for_profit+ private_not_for_profit_community_managed +
+             private_not_for_profit_other_organisations+
+             s_t_govt_school+
+             state_territory_and_local_government_managed+
+             non_govt_school+
+             other,
+           private_for_profit_perc=private_for_profit/total_number*100)%>%
+   select(state, aria, private_for_profit, private_for_profit_perc)%>%
+    arrange(state, desc(private_for_profit_perc))
+ 
+test %>%reactable()
+ 
+  test
+```
+
+
+
+ 
+
