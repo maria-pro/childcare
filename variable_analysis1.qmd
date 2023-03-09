@@ -745,6 +745,8 @@ dens / zscore_axis / quantile_axis
 
 ## If there are statistical areas where inefficiencies overlap e.g. areas with high fees AND poor quality
 
+## Correlation of the indicators at the SA level
+
 ```{r}
 
 sa2_cor<-sa2%>%select(
@@ -853,7 +855,7 @@ correlation with the above
 
 - regional or remote ARIA classification. 
 
-##Cluster analysis
+## Cluster analysis
 
 **Cluster analysis preparation**
 
@@ -982,7 +984,7 @@ clusters_geo%>%
 
 *WA and TAS are excluded due to data limitations*
 
-##Association rules mining
+## Association rules mining
 
 [Association rules mining](https://en.wikipedia.org/wiki/Association_rule_learning) is done at the centre level data and is based on the probability of occurences of values in the variables of interest.
 
@@ -1056,7 +1058,394 @@ plot(associa_rules,method="grouped",measure=c("confidence"))
 -----------
 
 
+## Statistical areas with higher than average fees
+
+```{r eval=FALSE}
+
+  
+  
+  sa3<-sa2%>%
+  group_by(sa3_code_2021, sa3_name_2021)%>%
+  # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+  #        "s_t_govt_school", "other")%>%
+  mutate(
+    #mgmt_type
+    total_number_sa3=sum(total_number_sa2, na.rm=TRUE),
+    private_for_profit_perc_sa3=round(sum(private_for_profit, na.rm=TRUE)/total_number_sa3*100, 2),
+    total_children_0_5_sa3=sum(total_children_0_5, na.rm=TRUE),
+    
+    #fee
+    fee_per_hr_sa3=mean(fee_per_hr, na.rm=TRUE),
+    fee_prc_growth_since_last_yr_sa3=mean(fee_prc_growth_since_last_yr, na.rm=TRUE),
+    fee_number_of_services_above_cap_sa3 = sum(fee_number_of_services_above_cap, na.rm=TRUE),
+    fee_prc_services_above_the_cap_sa3=mean(fee_prc_services_above_the_cap,  na.rm=TRUE)
+  
+         )%>%ungroup()
+  
+  sa3_geo<-sa2_geo%>%
+  group_by(sa3_code_2021, sa3_name_2021)%>%
+  # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+  #        "s_t_govt_school", "other")%>%
+  mutate(total_number_sa3=sum(total_number_sa2, na.rm=TRUE),
+         private_for_profit_perc_sa3=round(sum(private_for_profit, na.rm=TRUE)/total_number_sa3*100, 2),
+         total_children_0_5_sa3=sum(total_children_0_5, na.rm=TRUE)
+         )%>%ungroup()
 
 
+```
+
+
+**List of centers with standard deviation above 1.5**
+
+```{r}
+res<-sa3%>%
+  filter(fee_per_hr_z>1.5)%>%
+  select(sa3_code_2021, sa3_name_2021, gcc_code_2021 ,state_name_2021, fee_per_hr)%>%distinct()
+
+res
+
+```
+**NSW** SA3 with fees above 1 stdev
+
+```{r}
+res<-sa3_geo%>%
+  filter(fee_per_hr_z>1)%>%
+  select(sa3_code_2021, sa3_name_2021, gcc_code_2021 ,state_name_2021, fee_per_hr)%>%distinct()
+
+res%>%
+  filter(state_name_2021=="New South Wales")%>%
+  plot_mapbox(
+    split=~sa3_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+**VIC** SA3 with fees above 1 stdev
+
+```{r}
+res%>%
+  filter(state_name_2021=="Victoria")%>%
+  plot_mapbox(
+    split=~sa3_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+**Qld** SA3 with fees above 1 stdev
+
+```{r}
+res%>%
+  filter(state_name_2021=="Australian Capital Territory")%>%
+  plot_mapbox(
+    split=~sa3_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+
+
+## Management type (mngm_type_adj)
+
+**Statistical areas with only for-profit (or a very high proportion of for-profit) service management type**
+
+Total sample = all areas, percentage of private for profit centres based on total number of centres per sa2 area
+
+
+**List of centers with standard deviation above 1.5**
+
+```{r}
+res<-sa2%>%
+  filter(private_for_profit_perc_sa2_z>1.5)%>%
+  select(sa2_code_2021, sa2_name_2021, gcc_code_2021 ,state_name_2021, fee_per_hr)%>%distinct()
+
+res%>%reactable()
+
+```
+**NSW** SA2 with fees above 1.5 stdev
+
+1RNSW
+
+```{r}
+res<-sa2_geo%>%
+  filter(private_for_profit_perc_sa2_z>1.5)%>%
+  select(sa2_code_2021, sa2_name_2021, gcc_code_2021 ,state_name_2021, fee_per_hr)%>%distinct()
+
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="1RNSW")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+1GSYD
+
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="1GSYD")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+
+**VIC** SA2 with fees above 1 stdev
+
+2RVIC
+
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="2RVIC")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+
+2GMEL
+
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="2GMEL")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+**Qld** 
+
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="3GBRI")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+
+3RQLD
+
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="3RQLD")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+
+```
+
+4GADE
+
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="4GADE")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+
+```
+
+5GPER
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="5GPER")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+
+7GDAR
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="7GDAR")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+
+
+7RNTE
+
+```{r}
+res%>%
+#  filter(state_name_2021=="New South Wales")%>%
+  filter(gcc_code_2021=="7RNTE")%>%
+  plot_mapbox(
+    split=~sa2_name_2021,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+
+```
+#------------------
+```{r eval=FALSE}
+
+
+
+res<-sa2%>%
+#  filter(total_number>1)%>%
+  select(sa2_code_2021, sa2_name_2021,total_children_0_5,
+         private_for_profit, total_number_sa2, private_for_profit_perc_sa2)%>%
+  arrange(desc(private_for_profit_perc_sa2))
+
+res%>%reactable()
+
+#res%>%gt()
+
+
+```
+
+### At SA3 level 
+
+
+```{r}
+
+sa3%>%
+#  filter(total_number>1)%>%
+  select(sa3_code_2021, sa3_name_2021, 
+         #total_children_0_5_sa3, 
+         total_number_sa3, private_for_profit_perc_sa3)%>%
+  distinct()%>%
+  arrange(desc(private_for_profit_perc_sa3))%>%reactable()
+```
+
+#### Top 10 SA3
+
+```{r}
+sa3%>%
+  
+  select(sa3_name_2021, private_for_profit_perc_sa3)%>%
+  distinct()%>%slice_max(private_for_profit_perc_sa3,n=10)%>%
+  
+  ggplot(aes(sa3_name_2021, private_for_profit_perc_sa3
+             #fill=gcc_name_2021
+             ))+
+  geom_col(fill="#52B582")+
+#  facet_wrap(~state)+
+  labs(title="",
+         x ="", y="Percent of private for profit")+
+    theme(
+      legend.position="none",
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+      axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )+
+  scale_y_continuous (breaks = seq(from = 0, to = 100, by = 10) )
+```
+
+#### SA3 with >75%
+
+```{r}
+sa3%>%
+#  filter(total_number>1)%>%
+  select(sa3_code_2021, sa3_name_2021, 
+         #total_children_0_5_sa3, 
+         total_number_sa3, private_for_profit_perc_sa3)%>%
+  distinct()%>% 
+  filter(private_for_profit_perc_sa3>75)%>%
+  arrange(desc(private_for_profit_perc_sa3))%>%reactable()
+```
+
+
+
+```{r eval=FALSE}
+
+#### Map SA3 >75 
+#I suggest excluding - it does not look nice
+
+sa3_geo%>%
+  filter(private_for_profit_perc_sa3>75)%>%
+#  slice_max(private_for_profit_perc_sa3, n=5)%>%
+  plot_mapbox(
+    split=~sa3_name_2021,
+    color = I("#52B582"),
+    stroke = I("#52B582"),
+    zoom=10
+    )%>%
+  layout(
+  )
+```
 
 
