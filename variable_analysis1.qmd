@@ -1,0 +1,1062 @@
+---
+title: "Variable analysis"
+format: html
+toc: true
+toc-depth: 3
+code-fold: false
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+#### Editorial requirements
+
+**Chart elements:**
+
+- Preference for individual data points to be labelled if they can be clearly read and don’t make the graph too crowded. Otherwise use labelled axes and/or legend box, depending on type of data. 
+
+- Legend box to go on the right or left of the table.  
+- Axis to only be visible if there are labels against it, otherwise remove it.
+
+- No chart titles
+
+- No error bars unless the analysis is specifically looking at variance/spread
+
+- No gridlines
+
+- Line graphs to have markers for individual data points (unless there are so many that it obscures the line itself)
+
+- No outlines for anything (apart from legend box) e.g. for bar graphs, the visualisation itself
+ 
+ 
+**Design elements:**
+
+- Preferred font is Arial
+
+- Hex codes for our branding colours:
+-#52B582
+-#24464C
+-#C0BC89
+-#3AAE91
+-#2F4C6C
+-#5E8D97
+ 
+ 
+ ColourBrewer scheme: `BuGn`
+
+
+```{r}
+library(tidyverse)
+library(sf)
+library(leaflet)
+library(mapview)
+library(simplevis)
+library(reactable)
+library(reactablefmtr)
+library(plotly)
+library(absmapsdata)
+library(corrplot)
+library(gt)
+library(patchwork)
+
+
+
+options("scipen"=100, "digits"=2)
+
+theme_set(theme_minimal(
+  base_family="Arial",
+  base_size=10
+))
+
+#---maps
+
+map_sa2 <- sa22021
+map_sa1 <- sa12021
+
+map_sa2_2016<-sa22016
+
+map_sa3 <- sa32021
+
+map_sa4 <- sa42021
+```
+
+
+```{r eval=FALSE}
+
+#not latest - latest loaded further 
+#-------
+
+total_data_center<-read_csv("/Users/e5028514/Desktop/childcare/data/analysis_data/center_data_geo.csv", 
+                            col_types=cols(
+                              sa2_code_2021 = col_character(),
+                              sa3_code_2021 = col_character()
+                            ))
+
+sa2<-read_csv("/Users/e5028514/Desktop/childcare/data/analysis_data/sa2_full_seifa.csv", 
+              col_types=cols(
+                sa2_code_2021 = col_character(),
+                sa3_code_2021 = col_character()
+              ))
+```
+
+
+
+
+```{r  eval=FALSE}
+#changes saved in a separate file, not loading here
+
+#calculating additional variables
+
+sa2$low_quality_nqs <- rowSums(sa2[, c("significant_improvement_required", "working_towards_nqs")], na.rm=TRUE)
+sa2$reg_remote_aria <- rowSums(sa2[, c("aria_remote_australia", "aria_very_remote_australia", "aria_inner_regional_australia", "aria_outer_regional_australia")], na.rm=TRUE)
+
+sa2<-sa2%>%
+  # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+  #        "s_t_govt_school", "other")%>%
+  mutate(
+    #mgmt_type - center level
+    total_number_sa2=private_for_profit+ private_not_for_profit_community_managed +
+           private_not_for_profit_other_organisations+
+           s_t_govt_school+
+           state_territory_and_local_government_managed+
+           non_govt_school+
+           other,
+    private_for_profit_perc_sa2=round(private_for_profit/total_number_sa2*100, 2),
+    private_for_profit_perc_sa2_z=(private_for_profit_perc_sa2-mean(private_for_profit_perc_sa2, na.rm=TRUE))/sd(private_for_profit_perc_sa2, na.rm=TRUE),
+ 
+
+    #fees - sa3 level
+    fee_per_hr_z=(fee_per_hr-mean(fee_per_hr, na.rm=TRUE))/sd(fee_per_hr, na.rm=TRUE),
+    
+    fee_prc_growth_since_last_yr_z=(fee_prc_growth_since_last_yr-mean(fee_prc_growth_since_last_yr, na.rm=TRUE))/sd(fee_prc_growth_since_last_yr, na.rm=TRUE),
+    
+    fee_number_of_services_above_cap_z=(fee_number_of_services_above_cap-mean(fee_number_of_services_above_cap, na.rm=TRUE))/sd(fee_number_of_services_above_cap, na.rm=TRUE),
+
+    fee_prc_services_above_the_cap_z=(fee_number_of_services_above_cap-mean(fee_prc_services_above_the_cap, na.rm=TRUE))/sd(fee_prc_services_above_the_cap, na.rm=TRUE) ,
+    
+   
+#quality - ‘significant improvement required’ or ‘working towards’ - nqs - center level
+
+low_quality_perc= low_quality_nqs/total_number_sa2*100, #percentage
+low_quality_nqs_z=(low_quality_nqs-mean(low_quality_nqs, na.rm=TRUE))/sd(low_quality_nqs, na.rm=TRUE), #number
+low_quality_perc_z=(low_quality_perc-mean(low_quality_perc, na.rm=TRUE))/sd(low_quality_perc, na.rm=TRUE),
+
+#on track percentage - aedc - sa2
+on_track_percent_z=(on_track_percent-mean(on_track_percent, na.rm=TRUE))/sd(on_track_percent, na.rm=TRUE),
+
+#prenatal - only sa3 level!
+
+prenatal_5visits_perc_z=(prenatal_5visits_perc-mean(prenatal_5visits_perc, na.rm=TRUE))/sd(prenatal_5visits_perc, na.rm=TRUE),
+
+prenatal_low_birthweight_perc_z=(prenatal_low_birthweight_perc-mean(prenatal_low_birthweight_perc, na.rm=TRUE))/sd(prenatal_low_birthweight_perc, na.rm=TRUE),
+
+prenatal_small_perc_z=(prenatal_small_perc-mean(prenatal_small_perc, na.rm=TRUE))/sd(prenatal_small_perc, na.rm=TRUE),
+
+prenatal_teen_mother_perc=prenatal_teen_mother_per_1000/10, 
+prenatal_teen_mother_perc_z=(prenatal_teen_mother_perc-mean(prenatal_teen_mother_perc, na.rm=TRUE))/sd(prenatal_teen_mother_perc, na.rm=TRUE),
+
+prenatal_smoking_perc_z=(prenatal_smoking_perc-mean(prenatal_smoking_perc, na.rm=TRUE))/sd(prenatal_smoking_perc, na.rm=TRUE),
+  
+#enrolment  - sa2 level
+age_4_enrol_perc=`4 years old`/age_4*100,
+# regional or remote ARIA classification - center level - transformed
+reg_remote_aria_perc=reg_remote_aria/total_number_sa2*100
+)
+
+
+sa2<-sa2%>%mutate_all(
+  ~ifelse(is.nan(.), NA, .)
+  )%>%
+  mutate_all(
+  ~ifelse(is.infinite(.), NA, .)
+  )
+
+sa2<-sa2%>%mutate(
+  
+age_4_enrol_perc_z=(age_4_enrol_perc-mean(age_4_enrol_perc, na.rm=TRUE))/sd(sa2$age_4_enrol_perc, na.rm=TRUE),
+
+#additional -supporting variables
+#indig - sa2 level
+
+indi_percent_z=(indigenous_children_as_a_percent_of_all_0_5-mean(indigenous_children_as_a_percent_of_all_0_5, na.rm=TRUE))/sd(indigenous_children_as_a_percent_of_all_0_5, na.rm=TRUE),
+
+# regional or remote ARIA classification - center level - transformed
+#reg_remote_aria_perc=reg_remote_aria/total_number_sa2*100,
+reg_remote_aria_perc_z=(reg_remote_aria_perc-mean(reg_remote_aria_perc, na.rm=TRUE))/sd(reg_remote_aria_perc, na.rm=TRUE)
+)
+
+#summary(sa2$age_4_enrol_perc_z)
+#summary(sa2$low_quality_perc)
+#summary(sa2$indi_percent_z)
+#summary(sa2$reg_remote_aria_perc_z)
+
+#sa2%>%write_csv("data/analysis_data/sa2_additional_var.csv")
+
+```
+
+
+
+```{r  eval=FALSE}
+
+#changes saved in a separate file, not loading here
+
+#sa3
+
+sa3<-sa2%>%group_by(sa3_code_2021, sa3_name_2021)%>%
+  # select(sa2_code_2021, sa2_name_2021, starts_with("private"), 
+  #        "s_t_govt_school", "other")%>%
+  mutate(
+    #mgmt_type - center level
+    total_number_sa3=sum(total_number_sa2, na.rm=TRUE),
+    
+    private_for_profit_sa3=sum(private_for_profit, na.rm=TRUE),
+    
+    private_for_profit_perc_sa3=private_for_profit_sa3/total_number_sa3*100,
+    
+    private_for_profit_perc_sa3_z=(private_for_profit_perc_sa3-mean(private_for_profit_perc_sa3, na.rm=TRUE))/sd(private_for_profit_perc_sa3, na.rm=TRUE)
+    
+    
+    ,
+    
+    #fees - sa3 level
+#    fee_per_hr_z=(fee_per_hr-mean(fee_per_hr, na.rm=TRUE))/sd(fee_per_hr, na.rm=TRUE),
+#    fee_prc_growth_since_last_yr_z=(fee_prc_growth_since_last_yr-mean(fee_prc_growth_since_last_yr, na.rm=TRUE))/sd(fee_prc_growth_since_last_yr, na.rm=TRUE),
+    
+#    fee_number_of_services_above_cap_z=(fee_number_of_services_above_cap-mean(fee_number_of_services_above_cap, na.rm=TRUE))/sd(fee_number_of_services_above_cap, na.rm=TRUE),
+
+#    fee_prc_services_above_the_cap_z=(fee_number_of_services_above_cap-mean(fee_prc_services_above_the_cap, na.rm=TRUE))/sd(fee_prc_services_above_the_cap, na.rm=TRUE),
+    
+
+#quality - ‘significant improvement required’ or ‘working towards’ - nqs - center level
+low_quality_sa3=sum(low_quality_nqs, na.rm=TRUE),
+low_quality_sa3_perc= low_quality_sa3/total_number_sa3*100,
+low_quality_sa3_z=(low_quality_sa3-mean(low_quality_sa3, na.rm=TRUE))/sd(low_quality_sa3, na.rm=TRUE),
+low_quality_sa3_perc_z=(low_quality_sa3_perc-mean(low_quality_sa3_perc, na.rm=TRUE))/sd(low_quality_sa3_perc, na.rm=TRUE),
+
+#on track percentage - aedc - sa2
+on_track_percent_sa3=mean(on_track_percent, na.rm=TRUE),
+on_track_percent_sa3_z=(on_track_percent_sa3-mean(on_track_percent_sa3, na.rm=TRUE))/sd(on_track_percent_sa3, na.rm=TRUE),
+
+#prenatal - only sa3 level!
+
+prenatal_5visits_perc_z=(prenatal_5visits_perc-mean(prenatal_5visits_perc, na.rm=TRUE))/sd(prenatal_5visits_perc, na.rm=TRUE),
+
+prenatal_low_birthweight_perc_z=(prenatal_low_birthweight_perc-mean(prenatal_low_birthweight_perc, na.rm=TRUE))/sd(prenatal_low_birthweight_perc, na.rm=TRUE),
+
+prenatal_small_perc_z=(prenatal_small_perc-mean(prenatal_small_perc, na.rm=TRUE))/sd(prenatal_small_perc, na.rm=TRUE),
+
+prenatal_teen_mother_perc=prenatal_teen_mother_per_1000/10, 
+prenatal_teen_mother_perc_z=(prenatal_teen_mother_perc-mean(prenatal_teen_mother_perc, na.rm=TRUE))/sd(prenatal_teen_mother_perc, na.rm=TRUE),
+
+prenatal_smoking_perc_z=(prenatal_smoking_perc-mean(prenatal_smoking_perc, na.rm=TRUE))/sd(prenatal_smoking_perc, na.rm=TRUE),
+  
+#enrolment  - sa2 level
+age_4_enrol_sa3_perc=mean(age_4_enrol_perc, na.rm=TRUE),
+age_4_enrol_sa3_perc_z=(age_4_enrol_sa3_perc-mean(age_4_enrol_sa3_perc, na.rm=TRUE))/sd(age_4_enrol_sa3_perc, na.rm=TRUE),
+
+#additional -supporting variables
+#indig - sa2 level
+
+indi_sa3=sum(indigenous_children_as_a_percent_of_all_0_5, na.rm=TRUE),
+indi_sa3_percent=indi_sa3/sum(total_n, na.rm=TRUE),
+indi_sa3_percent_z=(indi_sa3_percent-mean(indi_sa3_percent, na.rm=TRUE))/sd(indi_sa3_percent, na.rm=TRUE),
+
+# regional or remote ARIA classification - center level - transformed
+reg_remote_aria_sa3_perc=mean(reg_remote_aria_perc, na.rm=TRUE),
+reg_remote_aria_sa3_perc_z=(reg_remote_aria_sa3_perc-mean(reg_remote_aria_sa3_perc, na.rm=TRUE))/sd(reg_remote_aria_sa3_perc, na.rm=TRUE)
+)%>%ungroup()
+
+
+#summary(sa3$age_4_enrol_perc_z)
+#summary(sa3$low_quality_perc)
+#summary(sa3$indi_percent_z)
+#summary(sa3$reg_remote_aria_perc_z)
+
+#sa3%>%write_csv("data/analysis_data/sa3_additional_var.csv")
+
+```
+
+
+```{r}
+#center data is the same  total_data_center, sa2 is with additional variables
+
+total_data_center<-read_csv("/Users/e5028514/Desktop/childcare/data/analysis_data/center_data_geo.csv", 
+                            col_types=cols(
+                              sa2_code_2021 = col_character(),
+                              sa3_code_2021 = col_character()
+                            ))
+
+sa2<-read_csv("data/analysis_data/sa2_additional_var.csv", 
+              col_types=cols(
+                sa2_code_2021 = col_character(),
+                sa3_code_2021 = col_character()
+              ))%>%
+  mutate(across(where(is.logical), as.numeric))
+
+sa3<-read_csv("data/analysis_data/sa3_additional_var.csv", 
+              col_types=cols(
+                sa2_code_2021 = col_character(),
+                sa3_code_2021 = col_character()
+              ))%>%
+  mutate(across(where(is.logical), as.numeric))
+
+
+```
+
+
+
+```{r}
+#link map
+
+map_sa2<-map_sa2%>%select(sa2_code_2021, gcc_code_2021,geometry)
+
+map_sa3<-map_sa3%>%select(sa3_code_2021, gcc_code_2021,geometry)
+
+
+
+
+sa2_geo<-left_join(sa2, map_sa2)
+
+sa3_geo<-left_join(sa3, map_sa3)
+
+total_data_center_sa2<-left_join(total_data_center, map_sa2)
+
+#set geometry
+
+st_geometry(sa2_geo)<-sa2_geo$geometry
+
+st_geometry(sa3_geo)<-sa2_geo$geometry
+
+st_geometry(total_data_center_sa2)<-total_data_center_sa2$geometry
+
+#saved already
+#sa2_geo%>%st_write("data/analysis_data/sa2_additional_var.geojson")
+
+#sa3_geo%>%st_write("data/analysis_data/sa3_additional_var.geojson")
+
+```
+
+
+## Does inequality exists? - SA2 level
+
+The density graphs show inequality for each factors:
+
+The expected behaviour of the graph is a bell curve
+
+**Statistical areas with only for-profit (or a very high proportion of for-profit) service management types**
+
+```{r}
+dens<-sa2%>%ggplot(aes(
+  private_for_profit_perc_sa2
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+      axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(private_for_profit_perc_sa2_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(private_for_profit_perc_sa2_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+
+**Statistical areas with higher than average fees**
+
+```{r}
+dens<-sa2%>%ggplot(aes(
+  fee_per_hr
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+      axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(fee_per_hr_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(fee_per_hr_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+**Number of services charging above the fee cap**
+
+```{r}
+dens<-sa2%>%ggplot(aes(
+  fee_prc_services_above_the_cap
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+      axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(fee_prc_services_above_the_cap_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(fee_prc_services_above_the_cap_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+
+**Statistical areas with a high proportion of low quality services**
+
+Low quality service is considered as a service that received NQS overall quality rating of ‘significant improvement required’ or ‘working towards’
+
+```{r}
+dens<-sa2%>%ggplot(aes(
+  low_quality_perc
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+   #   axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(low_quality_perc_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(low_quality_perc_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+
+**Statistical areas where there are a low proportion of children scored as ‘on track’**
+
+```{r}
+dens<-sa2%>%ggplot(aes(
+  on_track_percent
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+    #  axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(on_track_percent_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(on_track_percent_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+
+
+**Statistical areas with a low proportion of women who attended 5 or more antenatal visits**
+Analysis is done at sa3 level as prenatal data is available only at this level
+
+```{r}
+#sa3 level
+dens<-sa2%>%ggplot(aes(
+  prenatal_5visits_perc
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+     # axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(prenatal_5visits_perc_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(prenatal_5visits_perc_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+
+**Statistical areas with a high proportion of babies who are born small for their gestational age**
+
+For live births
+
+```{r}
+#sa3 level
+dens<-sa3%>%ggplot(aes(
+  prenatal_low_birthweight_perc
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+      axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(prenatal_low_birthweight_perc_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(prenatal_low_birthweight_perc_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+
+For singleton
+
+prenatal_small_perc
+
+```{r}
+#sa3 level
+dens<-sa2%>%ggplot(aes(
+  prenatal_small_perc
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+ #     axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(prenatal_small_perc_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(prenatal_small_perc_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+
+**Statistical areas with a low rate of 4-year-old preschool enrolment (as compared to total number of 4 year olds)**
+
+```{r}
+#sa3 level
+dens<-sa2%>%ggplot(aes(
+  age_4_enrol_perc
+))+
+  geom_density(color="#24464C", fill="#52B582" )+
+   labs(title="",
+         x ="", y="Density")+
+    theme(
+      legend.position="right",
+      
+      panel.grid.major = element_blank(), 
+      panel.grid.minor = element_blank(),
+      panel.background = element_blank(),
+      axis.ticks.y=element_line(colour = "black"),
+      axis.ticks.x=element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_line(colour = "black"),
+      
+      #text = element_text(size = 14),
+ #     axis.text.x=element_text(angle=90,hjust=1)
+      
+      #,
+      #axis.text.y=element_text(size=14)
+    )
+
+zscore_axis <- ggplot(sa2, aes(age_4_enrol_perc_z)) +
+  labs(x = "Z-score") +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+
+quantile_axis <- ggplot(sa2, aes(age_4_enrol_perc_z)) +
+  labs(x = "Quantile") +
+  scale_x_continuous(breaks = qnorm(seq(0.1, 0.9, by = 0.1)),
+                     labels = seq(0.1, 0.9, by = 0.1)) +
+  theme(axis.line.x = element_line(),
+        aspect.ratio = 1e-8
+        )
+dens / zscore_axis / quantile_axis
+```
+
+
+## If there are statistical areas where inefficiencies overlap e.g. areas with high fees AND poor quality
+
+```{r}
+
+sa2_cor<-sa2%>%select(
+sa2_code_2021,
+#sa2 and sa3
+private_for_profit_perc_sa2,
+
+#sa3
+fee_per_hr, 
+fee_prc_growth_since_last_yr,
+fee_prc_services_above_the_cap,
+
+#centre level
+low_quality_perc,
+
+
+#sa3
+on_track_percent,
+
+
+#sa3
+prenatal_5visits_perc,
+prenatal_low_birthweight_perc,
+#prenatal_small_perc,
+#prenatal_teen_mother_perc,
+#prenatal_smoking_perc,
+
+
+#sa2
+age_4_enrol_perc,
+reg_remote_aria_perc,
+
+indigenous_children_as_a_percent_of_all_0_5,
+
+#either - sa2 level
+#seifa_rank
+#seifa_decile
+seifa_percentile_sa2
+)
+```
+
+
+```{r}
+colnames(sa2_cor)<-c(
+"sa2_code_2021",
+"Private 4 profit%",     #private_for_profit_perc_sa2,
+
+#sa3
+"Fee per hr", #fee_per_hr, 
+"Fee growth%", #fee_prc_growth_since_last_yr,
+"% fee above cap", #fee_prc_services_above_the_cap,
+
+#centre level
+"Low quality%", #low_quality_perc,
+
+#sa3
+"On track%", #on_track_percent,
+
+#sa3
+"Prenatal visits%", #prenatal_5visits_perc,
+"Low b/weight%", #prenatal_low_birthweight_perc,
+#prenatal_small_perc,
+#prenatal_teen_mother_perc,
+#prenatal_smoking_perc,
+
+
+#sa2
+"Age4 enr%", #age_4_enrol_perc,
+"Reg/remote%", #reg_remote_aria_perc,
+
+"Indig%", #indigenous_children_as_a_percent_of_all_0_5,
+
+#either - sa2 level
+
+"SEIFA %"
+#seifa_rank
+#seifa_decile
+#seifa_percentile_sa2
+)
+
+sa2_cor<-na.omit(sa2_cor)
+
+sa2_cor_correlation<-sa2_cor%>%select(-sa2_code_2021)
+
+
+corrplot::corrplot(cor(sa2_cor_correlation),
+ method="square",
+ type="upper",
+ bg="#5E8D97",
+   
+
+ col = COL2('PiYG', 20), #“RdBu”, “BrBG”, “PiYG”, “PRGn”, “PuOr”, “RdYlBu”
+ addgrid.col = "black",
+ tl.col = "black")
+
+
+```
+
+** is inefficiency worse if sa areas are also associated with other disadvantaged characteristics** 
+
+correlation with the above
+
+- low SEIFA decile (bottom one or two deciles); 
+
+- high proportion of indigenous children aged 0-5 compared to the total 0-5 population; and 
+
+- regional or remote ARIA classification. 
+
+##Cluster analysis
+
+**Cluster analysis preparation**
+
+Using ["elbow" method](https://en.wikipedia.org/wiki/Elbow_method_(clustering)#:~:text=In%20cluster%20analysis%2C%20the%20elbow,number%20of%20clusters%20to%20use.) to estimate the number of clusters
+
+
+```{r}
+#cluster analysis
+
+set.seed(123)
+sa2_cluster<-scale(sa2_cor_correlation)
+
+factoextra::fviz_nbclust(sa2_cluster, kmeans, method = "wss")
+```
+
+
+**Clusters and their characteristics**
+
+Note: clustering is done on the scaled data and further cluster centres are applied to unscaled data to demonstrate distinctive characteristics of each cluster
+
+Visualizing clusters with quite distinct boundaries:
+```{r}
+set.seed(123)
+
+final <- kmeans(sa2_cluster, 3, nstart = 25)
+
+factoextra::fviz_cluster(final, data = sa2_cluster, ggtheme=theme_minimal(), geom="point")+ scale_color_brewer( palette='Dark2')
+
+```
+Cluster centres (means) allows to translate them into distinctive feaures of each cluster
+
+```{r}
+aggregate(sa2_cor_correlation, by=list(cluster=final$cluster), mean)
+
+```
+
+Cluster 1: high % of private for profit centres, high fees per hr, high % of fee above cap, but low quality, low birth weight, non-reg/remote ARIA, low % of indigenous children and high SEIFA
+
+Cluster 2: .....
+
+```{r}
+#add to original data to put on a map
+
+clusters <- cbind(sa2_cor, cluster = final$cluster)
+
+#add map
+
+#clusters%>%write_csv("data/analysis_data/clusters.csv")
+
+clusters_geo<-left_join(clusters, sa22021)
+
+st_geometry(clusters_geo)<-clusters_geo$geometry
+
+
+#clusters_geo%>%st_write("data/analysis_data/clusters.geojson")
+
+clusters_geo%>%plot_mapbox(
+    split=~cluster,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=10
+    )%>%
+  layout(
+  )
+
+```
+
+**Per state clusters**
+
+**NSW**
+
+```{r}
+clusters_geo%>%
+  filter(state_code_2021==1)%>%
+  plot_mapbox(
+    split=~cluster,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+```
+
+**VIC**
+```{r}
+clusters_geo%>%
+  filter(state_code_2021==2)%>%
+  plot_mapbox(
+    split=~cluster,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+```
+**QLD**
+
+```{r}
+clusters_geo%>%
+  filter(state_code_2021==3)%>%
+  plot_mapbox(
+    split=~cluster,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+```
+
+**SA**
+```{r}
+clusters_geo%>%
+  filter(state_code_2021==4)%>%
+  plot_mapbox(
+    split=~cluster,
+ #   color = I("#52B582"),
+  #  stroke = I("#52B582"),
+    zoom=5
+    )%>%
+  layout(
+  )
+```
+
+*WA and TAS are excluded due to data limitations*
+
+##Association rules mining
+
+[Association rules mining](https://en.wikipedia.org/wiki/Association_rule_learning) is done at the centre level data and is based on the probability of occurences of values in the variables of interest.
+
+The essence of the analysis is co-occurence of the values measured through support, confidence and lift.
+
+**Support**: how frequently the itemset (=combination of items) appears in the dataset (together: combined itemset A ∪ B)
+
+**Confidence**:  relative frequency of occurences of A that also contain B
+
+**Lift**: the ratio of the confidence to the relative frequency of B
+
+*However, I am not sure if it is something you are interested in.*
+
+
+```{r}
+library(arules)
+library(arulesViz)
+
+
+associat_data<-total_data_center%>%
+  select(
+    aria,
+    mgmt_type_adj,
+    nqs_overall_rating,
+    seifa_decile,
+    fee_per_hr,
+    prenatal_low_birthweight_n,
+    indigenous_children_as_a_percent_of_all_0_5,
+    on_track_percent
+  )
+associat_data<-associat_data%>%na.omit(associat_data)
+  
+associat_data<-associat_data%>%
+  mutate_all(
+  as_factor)
+
+# Fitting model
+# Training Apriori on the dataset
+set.seed = 220 # Setting seed
+associa_rules = apriori(data = associat_data, 
+                        control=list(verbose=F),
+               parameter = list(minlen=2,supp=0.02,conf=0.8))
+#inspect(associa_rules)
+```
+
+List of rules from the data at the center level
+
+```{r}
+quality(associa_rules)<-round(quality(associa_rules),digits = 3)
+associa_rules<-sort(associa_rules,by="lift")
+inspect(associa_rules)
+```
+**Visualising results**
+
+Each rule as a point against it’s confidence and support score, where the colour of the point shows it’s lift.
+
+```{r}
+# Plot
+plot(associa_rules,method="scatterplot",measure=c("support","confidence"),shading=c("lift"))
+
+
+# Visualising the results
+inspect(sort(associa_rules, by = 'lift')[1:10])
+plot(associa_rules, method = "graph", 
+     measure = "confidence", shading = "lift")
+
+plot(associa_rules,method="grouped",measure=c("confidence"))
+
+```
+
+-----------
+
+
+
+
+
+

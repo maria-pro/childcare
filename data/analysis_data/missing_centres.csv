@@ -1,0 +1,4 @@
+service_approval_number,service_name,mgmt_type,suburb,postcode,state,seifa,aria,nqs_max_total_places,service_sub_type,nqs_overall_rating,latitude,longitude,dataset,sa2_code_2021
+SE-00009385,Toukley Public School Kooloora Preschool,State/Territory government schools,TOUKLEY,2263,NSW,1,Major Cities of Australia,27,PSK,Exceeding NQS,-33.26275,151.52267,nqs,102021054
+SE-40001901,Tagai State College - Darnley Island (Erub Erwer Uteb) Kindergarten,State/Territory government schools,DARNLEY ISLAND,4875,QLD,7,Major Cities of Australia,12,PSK,Meeting NQS,-9.8587487,142.3659034,nqs,315011402
+SE-40015235,The Learning Sanctuary Yeronga,Private for profit,YERONGA,4101,QLD,6,Major Cities of Australia,117,LDC,Meeting NQS,-27.5212454,153.0106057,nqs,303021059
